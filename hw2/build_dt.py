@@ -145,6 +145,10 @@ def print_confusion_matrix(train_result, train_truth, test_result, test_truth):
             row = map_to_num[train_truth[i]]
             matrix[row][col] += 1
             yes_train += 1
+        else:
+            col = map_to_num[train_result[i]]
+            row = map_to_num[train_truth[i]]
+            matrix[row][col] += 1
 
     print_str = '            '
     for i in range(len(label_set)):
@@ -177,6 +181,10 @@ def print_confusion_matrix(train_result, train_truth, test_result, test_truth):
             row = map_to_num[test_truth[i]]
             matrix[row][col] += 1
             yes_test += 1
+        else:
+            col = map_to_num[train_result[i]]
+            row = map_to_num[train_truth[i]]
+            matrix[row][col] += 1
 
     print_str = '            '
     for i in range(len(label_set)):
@@ -226,7 +234,7 @@ def write_system_output(dt_root, training_data, test_data, output_filename):
     print_confusion_matrix(train_result, train_truth, test_result ,test_truth)
 
 if __name__ == "__main__":
-    use_local_file = True
+    use_local_file = False
     if use_local_file:
         training_data_filename = 'examples/train.vectors.txt'
         test_data_filename = 'examples/test.vectors.txt'
