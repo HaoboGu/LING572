@@ -182,8 +182,8 @@ def print_confusion_matrix(train_result, train_truth, test_result, test_truth):
             matrix[row][col] += 1
             yes_test += 1
         else:
-            col = map_to_num[train_result[i]]
-            row = map_to_num[train_truth[i]]
+            col = map_to_num[test_result[i]]
+            row = map_to_num[test_truth[i]]
             matrix[row][col] += 1
 
     print_str = '            '
