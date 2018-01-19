@@ -1,11 +1,10 @@
 import sys
 import numpy as np
-import time
 from math import log2
 from collections import Counter
 
 class Node:
-    def __init__(self, node_path, node_data, node_used_features, node_depth, current_label):
+    def __init__(self, node_path, node_data, node_used_features, node_depth, current_label, cur_result):
         self.path = node_path
         self.data = node_data
         self.used_features = node_used_features
@@ -15,6 +14,8 @@ class Node:
         self.pos_child = None
         self.neg_child = None
         self.current_feature = ''
+        self.result = cur_result
+
 
 def read_data(filename):
     f = open(filename)
@@ -51,13 +52,6 @@ def read_test_data(filename):
         line = f.readline().strip('\n').strip(' ')
     data = np.array([label_list, feature_list])
     return data
-
-
-def entropy(label_list, all_labels):
-    probs = []
-    for l in all_labels:
-        probs.append(label_list.count(l))
-    return en(probs)
 
 
 def en(l):
@@ -101,55 +95,162 @@ def divide(data, used_feature):
     return np.array([positive_labels, pos_features]), np.array([negative_labels, neg_features])
 
 
-def summary(node, all_labels):
-    num_samples = len(node.data[0])
-    num_clusters = {}
-    for l in all_labels:
-        num_clusters[l] = (node.data[0] == l).sum()
-    print(num_samples)
-    for k in num_clusters:
-        print(k, num_clusters[k])
-    print('-----')
-
-import os
-# os.chdir('hw2')
-
-
-def find_leaf(root, feature):
-    if root.has_child:
-        if root.current_feature in feature:
-            return find_leaf(root.pos_child, feature)
+def find_leaf(node, feature):
+    if node.has_child:
+        if node.current_feature in feature:
+            return find_leaf(node.pos_child, feature)
         else:
-            return find_leaf(root.neg_child, feature)
+            return find_leaf(node.neg_child, feature)
     else:
-        return root
+        return node
 
+
+def write_dt(root_node, model_filename):
+    f = open(model_filename, 'w')
+    label_set = set(root_node.data[0])
+
+    def __visit(child, f, label_set):
+        if child.has_child:
+            __visit(child.pos_child, f, label_set)
+            __visit(child.neg_child, f, label_set)
+        else:  # leaf node
+            out_string = child.path.strip('&') + ' ' + str(child.data.shape[1])
+            for l in child.result:
+                out_string += ' ' + l + ' ' + str(child.result[l])
+            out_string += '\n'
+            f.write(out_string)
+
+    if root_node.has_child:
+        __visit(root_node.pos_child, f, label_set)
+        __visit(root_node.neg_child, f, label_set)
+    f.close()
+
+
+def print_confusion_matrix(train_result, train_truth, test_result, test_truth):
+    print('Confusion matrix for the training data:\nrow is the truth, column is the system output\n')
+    label_set = list(set(train_truth))
+    dimension = len(label_set)
+    matrix = np.zeros([dimension, dimension])
+    map_to_num = {}
+    map_to_l = {}
+    index = 0
+    yes_train = 0
+    for item in label_set:
+        map_to_num[item] = index
+        map_to_l[index] = item
+        index += 1
+    for i in range(len(train_truth)):
+        if train_result[i] == train_truth[i]:
+            col = map_to_num[train_result[i]]
+            row = map_to_num[train_truth[i]]
+            matrix[row][col] += 1
+            yes_train += 1
+
+    print_str = '            '
+    for i in range(len(label_set)):
+        print_str += ' ' + map_to_l[i]  # first row
+    print_str += '\n'
+    for i in range(len(label_set)):
+        print_str += map_to_l[i]  # first col
+        for j in range(len(label_set)):
+            print_str += ' ' + str(int(matrix[i][j]))
+        print_str += '\n'
+    print_str += '\n Training accuracy=' + str(yes_train/len(train_result)) + '\n'
+    print(print_str)
+
+    # print test result
+    print('Confusion matrix for the test data:\nrow is the truth, column is the system output\n')
+    label_set = list(set(test_truth))
+    dimension = len(label_set)
+    matrix = np.zeros([dimension, dimension])
+    map_to_num = {}
+    map_to_l = {}
+    index = 0
+    yes_test = 0
+    for item in label_set:
+        map_to_num[item] = index
+        map_to_l[index] = item
+        index += 1
+    for i in range(len(test_truth)):
+        if test_result[i] == test_truth[i]:
+            col = map_to_num[test_result[i]]
+            row = map_to_num[test_truth[i]]
+            matrix[row][col] += 1
+            yes_test += 1
+
+    print_str = '            '
+    for i in range(len(label_set)):
+        print_str += ' ' + map_to_l[i]  # first row
+    print_str += '\n'
+    for i in range(len(label_set)):
+        print_str += map_to_l[i]  # first col
+        for j in range(len(label_set)):
+            print_str += ' ' + str(int(matrix[i][j]))
+        print_str += '\n'
+    print_str += '\n testing accuracy=' + str(yes_test/len(test_result)) + '\n'
+    print(print_str)
+
+
+def write_system_output(dt_root, training_data, test_data, output_filename):
+    f = open(output_filename, 'w')
+    f.write("%%%%% training data:\n")
+    train_result = []
+    train_truth = []
+    # write results of training data
+    for i in range(len(training_data[0])):
+        label = training_data[0][i]
+        feature = training_data[1][i]
+        leaf = find_leaf(dt_root, feature)
+        out_string = 'array:' + str(i)
+        train_result.append(leaf.label)
+        train_truth.append(label)
+        for key in leaf.result:
+            out_string += ' ' + key + ' ' + str(leaf.result[key])
+        out_string += '\n'
+        f.write(out_string)
+    f.write("\n\n%%%%% test data:\n")
+    test_result, test_truth = [], []
+    # write results of test data
+    for i in range(len(test_data[0])):
+        label = test_data[0][i]
+        feature = test_data[1][i]
+        leaf = find_leaf(dt_root, feature)
+        out_string = 'array:' + str(i)
+        test_result.append(leaf.label)
+        test_truth.append(label)
+        for key in leaf.result:
+            out_string += ' ' + key + ' ' + str(leaf.result[key])
+        out_string += '\n'
+        f.write(out_string)
+    f.close()
+    print_confusion_matrix(train_result, train_truth, test_result ,test_truth)
 
 if __name__ == "__main__":
     use_local_file = True
     if use_local_file:
         training_data_filename = 'examples/train.vectors.txt'
         test_data_filename = 'examples/test.vectors.txt'
-        max_depth = 20
-        min_gain = 0
+        max_depth = 1
+        min_gain = 0.1
         model_file = 'model_file'
         sys_output = 'sys.out'
     else:
         training_data_filename = sys.argv[1]
         test_data_filename = sys.argv[2]
-        max_depth = sys.argv[3]
-        min_gain = sys.argv[4]
+        max_depth = int(sys.argv[3])
+        min_gain = float(sys.argv[4])
         model_file = sys.argv[5]
         sys_output = sys.argv[6]
-    start = time.time()
+
     # read data training data, data[0] is the list of labels, data[1] is the list of features
     training_data, feature_set = read_data(training_data_filename)
     label_set = set(training_data[0])
     keep_looping = 1
     node_set = []
-    root = Node('', training_data, [], 0, '')
+    root = Node('', training_data, [], 0, '', {})
     node_set.append(root)
     useless_path = set()
+
     while keep_looping:  # there is at least one node is split in previous loop
         keep_looping = 0
         new_node_set = []
@@ -177,15 +278,27 @@ if __name__ == "__main__":
                     else:  # do splitting on this node
                         pos_samples, neg_samples = divide(cur_data, best_feature)
                         # positive child
-                        pos_label = Counter(pos_samples[0]).most_common(1)[0][0]
+                        pos_num_instances = pos_samples.shape[1]
+                        pos_occurrences = Counter(pos_samples[0])
+                        pos_result = {}  # label:probability
+                        for l in label_set:
+                            p = pos_occurrences.get(l) / pos_num_instances if l in pos_occurrences else 0
+                            pos_result[l] = p
+                        pos_label = pos_occurrences.most_common(1)[0][0]
                         pos_path = cur_node.path + best_feature + '&'
                         uf = cur_node.used_features
                         uf.append(best_feature)  # used feature
-                        pos_node = Node(pos_path, pos_samples, uf, cur_node.depth+1, pos_label)
+                        pos_node = Node(pos_path, pos_samples, uf, cur_node.depth+1, pos_label, pos_result)
                         # negative child
+                        neg_num_instances = neg_samples.shape[1]
+                        neg_occurrences = Counter(neg_samples[0])
+                        neg_result = {}  # label:probability
+                        for l in label_set:
+                            p = neg_occurrences.get(l) / neg_num_instances if l in neg_occurrences else 0
+                            neg_result[l] = p
+                        neg_label = neg_occurrences.most_common(1)[0][0]
                         neg_path = cur_node.path + '!' + best_feature + '&'
-                        neg_label = Counter(neg_samples[0]).most_common(1)[0][0]
-                        neg_node = Node(neg_path, neg_samples, uf, cur_node.depth+1, neg_label)
+                        neg_node = Node(neg_path, neg_samples, uf, cur_node.depth+1, neg_label, neg_result)
                         new_node_set.append(pos_node)
                         new_node_set.append(neg_node)
                         # Update current node
@@ -198,36 +311,8 @@ if __name__ == "__main__":
                         keep_looping = 1
         if keep_looping == 1:
             node_set = new_node_set
-        print('looping')
-    end = time.time()
-    print('total:', (end-start)/60)
-    # for item in node_set:
-    #     print(item.path)
-    # e = entropy(train_labels, set(train_labels))
-    # print()
-    # for item in training_data:
-    #     print(item)
+
     test_data = read_test_data(test_data_filename)
-    yes = 0
-    no = 0
-    for i in range(len(test_data[0])):
-        label = test_data[0][i]
-        feature = test_data[1][i]
-        leaf = find_leaf(root, feature)
-        if leaf.label == label:
-            yes += 1
-        else:
-            no += 1
-    print(yes/(yes+no))
-    yes = 0
-    no = 0
-    for i in range(len(training_data[0])):
-        label = training_data[0][i]
-        feature = training_data[1][i]
-        leaf = find_leaf(root, feature)
-        if leaf.label == label:
-            yes += 1
-        else:
-            no += 1
-    print(yes/(yes+no))
+    write_dt(root, model_file)
+    write_system_output(root, training_data, test_data, sys_output)
 
