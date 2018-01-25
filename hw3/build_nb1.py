@@ -275,7 +275,7 @@ if __name__ == "__main__":
     # print('start test test data')
     test_result = run_test(test_data, class_set, prob_model, sys_output)
     write_system_output(training_result, test_result, sys_output)
-    print_confusion_matrix(training_result[1], training_data[1], test_result[1], test_data[1])
+    print_confusion_matrix(training_result[1], training_data[0], test_result[1], test_data[0])
 
 
 
