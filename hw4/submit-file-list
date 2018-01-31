@@ -1,0 +1,10 @@
+build_kNN.sh
+sys_output
+acc_file
+
+rank_feat_by_chi_square.sh
+feat_list
+
+
+
+
