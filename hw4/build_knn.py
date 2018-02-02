@@ -1,7 +1,6 @@
 import sys
 import numpy as np
 from scipy.spatial.distance import cdist
-import time
 import os
 from collections import Counter
 from operator import itemgetter
@@ -29,15 +28,12 @@ def read_data(filename):
             all_features.add(fea.split(':')[0])
             feature_tuples.append([fea.split(':')[0], int(fea.split(':')[1])])
         label_list.append(label)
-        # feature_list.append(feature_tuples)
         feature_list.append(feature_d)
         line = f.readline().strip('\n').strip(' ')
 
     for i in range(len(feature_list)):
-        # f_set = set(list(map(list, zip(*feature_list[i])))[0])
         for item in all_features:
             if item not in feature_list[i]:
-                # feature_list[i].append([item, 0])
                 feature_list[i][item] = 0
     data = np.array([label_list, feature_list])
     return data.transpose(), all_features
@@ -83,7 +79,6 @@ def knn(train, test, k, distance_func):
     :type distance_func: int
     :return:
     """
-
     # create lists used in distance calculation
     training_labels = train[0]
     training_lists = train[1]
@@ -101,9 +96,9 @@ def knn(train, test, k, distance_func):
     result_label = []
     out_strings = []
 
-    for i in range(matrix.shape[0]):
+    for row in range(matrix.shape[0]):
         # for each test instance
-        best_labels = training_labels[np.argpartition(matrix[i], k)[:k]]  # get top k similar labels
+        best_labels = training_labels[np.argpartition(matrix[row], k)[:k]]  # get top k similar labels
         counts = dict(Counter(best_labels))  # count them
         for l in label_set:  # add labels that aren't in top k
             if l not in counts:
@@ -112,23 +107,23 @@ def knn(train, test, k, distance_func):
         sorted_items = sorted(counts.items(), key=itemgetter(1), reverse=True)  # sort results by count
         sorted_items = np.array(sorted_items)
         # rearrange result by prob and then by label name
-        # max_c = sorted_items[0][1]
-        # max_s = sorted_items[0][0]
-        # for index in range(len(sorted_items)):
-        #     c = sorted_items[index][1]
-        #     l = sorted_items[index][0]
-        #     if max_c == c and l < max_s:
-        #         sorted_items[index][0], sorted_items[0][0] = sorted_items[0][0], sorted_items[index][0]
-        #         sorted_items[index][1], sorted_items[0][1] = sorted_items[0][1], sorted_items[index][1]
-        #         max_s = sorted_items[0][0]
-        #     elif max_c == c:
-        #         continue
-        #     else:
-        #         break
+        max_c = sorted_items[0][1]
+        max_s = sorted_items[0][0]
+        for index in range(len(sorted_items)):
+            c = sorted_items[index][1]
+            lb = sorted_items[index][0]
+            if max_c == c and lb < max_s:
+                sorted_items[index][0], sorted_items[0][0] = sorted_items[0][0], sorted_items[index][0]
+                sorted_items[index][1], sorted_items[0][1] = sorted_items[0][1], sorted_items[index][1]
+                max_s = sorted_items[0][0]
+            elif max_c == c:
+                continue
+            else:
+                break
 
         result_label.append(sorted_items[0][0])  # add best label to result
 
-        out_string = 'array:' + str(i) + ' ' + test_labels[i]
+        out_string = 'array:' + str(row) + ' ' + test_labels[row]
         for key, value in sorted_items:
             out_string += ' ' + str(key) + ' ' + ("%.5f" % (float(value)/denominator))
         out_string += '\n'
@@ -238,12 +233,11 @@ if __name__ == "__main__":
         similarity_func = int(sys.argv[4])
         sys_output = sys.argv[5]
 
-    s = time.time()
     training_data, word_set = read_data(training_data_filename)
     test_data = read_test_data(test_data_filename, word_set)
     word_list = list(word_set)
 
-    # rearrange data based on order in word list
+    # rearrange training data based on order in word list
     train_instances = []
     train_labels = []
     for label, d in training_data:
@@ -253,7 +247,7 @@ if __name__ == "__main__":
         train_instances.append(train_list)
         train_labels.append(label)
     train_labels = np.array(train_labels)
-
+    # rearrange test data based on order in word list
     test_instances = []
     test_truth = []
     for label, d in test_data:
@@ -263,6 +257,7 @@ if __name__ == "__main__":
         test_instances.append(test_list)
         test_truth.append(label)
 
+    # run KNN on test and training data
     result_test = knn([train_labels, train_instances], [test_truth, test_instances], k_val, similarity_func)
     result_train = knn([train_labels, train_instances], [train_labels, train_instances], k_val, similarity_func)
 
