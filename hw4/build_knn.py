@@ -112,19 +112,19 @@ def knn(train, test, k, distance_func):
         sorted_items = sorted(counts.items(), key=itemgetter(1), reverse=True)  # sort results by count
         sorted_items = np.array(sorted_items)
         # rearrange result by prob and then by label name
-        max_c = sorted_items[0][1]
-        max_s = sorted_items[0][0]
-        for index in range(len(sorted_items)):
-            c = sorted_items[index][1]
-            l = sorted_items[index][0]
-            if max_c == c and l < max_s:
-                sorted_items[index][0], sorted_items[0][0] = sorted_items[0][0], sorted_items[index][0]
-                sorted_items[index][1], sorted_items[0][1] = sorted_items[0][1], sorted_items[index][1]
-                max_s = sorted_items[0][0]
-            elif max_c == c:
-                continue
-            else:
-                break
+        # max_c = sorted_items[0][1]
+        # max_s = sorted_items[0][0]
+        # for index in range(len(sorted_items)):
+        #     c = sorted_items[index][1]
+        #     l = sorted_items[index][0]
+        #     if max_c == c and l < max_s:
+        #         sorted_items[index][0], sorted_items[0][0] = sorted_items[0][0], sorted_items[index][0]
+        #         sorted_items[index][1], sorted_items[0][1] = sorted_items[0][1], sorted_items[index][1]
+        #         max_s = sorted_items[0][0]
+        #     elif max_c == c:
+        #         continue
+        #     else:
+        #         break
 
         result_label.append(sorted_items[0][0])  # add best label to result
 
@@ -197,7 +197,7 @@ def print_confusion_matrix(train_result, train_truth, test_result, test_truth):
             row = map_to_num[test_truth[i]]
             matrix[row][col] += 1
 
-    print_str = '            '
+    print_str = ''
     for i in range(len(label_set)):
         print_str += ' ' + map_to_l[i]  # first row
     print_str += '\n'
