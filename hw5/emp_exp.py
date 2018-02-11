@@ -32,7 +32,7 @@ def read_training_data(filename):
 
 
 if __name__ == "__main__":
-    use_local_file = True
+    use_local_file = False
     if use_local_file:
         if 'hw5' in os.listdir():
             os.chdir('hw5')
@@ -59,14 +59,17 @@ if __name__ == "__main__":
                 raw_count[(label, feat)] += 1
     feature_list = sorted(list(feature_set))
     label_list = sorted(list(label_set))
-
     # Write empirical expectations to the file
     with open(sys_output, 'w') as output_file:
         for label in label_list:
             for feat in feature_list:
                 if (label, feat) in emp_expect:
-                    output_string = label+' '+feat+' '+ ('%.5f ' % emp_expect[(label, feat)]) \
+                    output_string = label + ' ' + feat+' ' + ('%.5f ' % emp_expect[(label, feat)]) \
                                     + str(raw_count[(label, feat)]) + '\n'
+                    output_file.write(output_string)
+
+                else:
+                    output_string = label + ' ' + feat + ' ' + str(0) + ' ' + str(0) + '\n'
                     output_file.write(output_string)
 
 
