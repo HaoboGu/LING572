@@ -145,7 +145,7 @@ def write_system_output(output_string, output_filename):
 
 
 if __name__ == "__main__":
-    use_local_file = True
+    use_local_file = False
     if use_local_file:
         test_data_filename = 'examples/test2.vectors.txt'
         model_filename = 'q1/m1.txt'
