@@ -2,6 +2,7 @@ import sys
 import numpy as np
 import re
 import os
+from operator import itemgetter
 
 
 def read_training_data(filename):
@@ -74,6 +75,24 @@ def decrease_net_gain(transformation, net_gain):
     return net_gain
 
 
+def apply_transformation(transformation, data):
+    """
+    Apply transformation on current data
+    :param transformation:
+    :param data:
+    :return:
+    """
+    feat = transformation[0]
+    from_label = transformation[1]
+    to_label = transformation[2]
+    for i in range(len(data)):
+        # Iterate through all data
+        feat_set, cur_label = data[i][0], data[i][1]
+        if feat in feat_set and cur_label == from_label:
+            data[i][1] = to_label  # apply transformation
+    return data
+
+
 def generate_transformations(data, minimal_gain, labels, initial_tag):
     """
     Generate transformations using training data.
@@ -84,29 +103,36 @@ def generate_transformations(data, minimal_gain, labels, initial_tag):
     :return:
     """
     data = initialize(data, initial_tag)
-    net_gain = {}
-    for feat_set, cur_label, golden_label in data:
-        for feat in feat_set:
-            # For every feature in instance x, add one to all transformations that lead to the right answer
-            # Subtract by one for all trans that start from the right answer
-            for to_label in labels:
-                if to_label != cur_label and to_label == golden_label:
-                    net_gain = increase_net_gain((feat, cur_label, to_label), net_gain)
-                elif cur_label == golden_label and to_label != cur_label:
-                    net_gain = decrease_net_gain((feat, cur_label, to_label), net_gain)
+    valid_transformations = []
+    current_max_gain = minimal_gain + 1  # must have first run
+    while current_max_gain >= minimal_gain:
+        net_gain = {}
+        for feat_set, cur_label, golden_label in data:
+            for feat in feat_set:
+                # For every feature in instance x, add one to all transformations that lead to the right answer
+                # Subtract by one for all trans that start from the right answer
+                for to_label in labels:
+                    if to_label != cur_label and to_label == golden_label:
+                        net_gain = increase_net_gain((feat, cur_label, to_label), net_gain)
+                    elif cur_label == golden_label and to_label != cur_label:
+                        net_gain = decrease_net_gain((feat, cur_label, to_label), net_gain)
 
-    valid_transformations = [key for key, value in net_gain.items() if value > minimal_gain]
-    # for trans in valid_transformations:
-    #     print(trans, net_gain[trans])
-    return valid_transformations, net_gain
+        # Obtain best transformation
+        sorted_net_gain = sorted(net_gain.items(), key=itemgetter(1), reverse=True)
+        current_max_gain = sorted_net_gain[0][1]
+        if current_max_gain >= minimal_gain:
+            valid_transformations.append((sorted_net_gain[0]))
+            data = apply_transformation(sorted_net_gain[0][0], data)  # apply best trans on data
+
+    return valid_transformations
 
 
-def write_model(model_file, initial_tag, valid_transformations, net_gain):
+def write_model(model_file, initial_tag, valid_transformations):
     """
     Write model to model file
     :param model_file:
     :param initial_tag:
-    :param valid_transformations:
+    :param valid_transformations: [(transformation, net_gain)], transformation = (feat, from, to)
     :param net_gain:
     :return:
     """
@@ -114,15 +140,14 @@ def write_model(model_file, initial_tag, valid_transformations, net_gain):
         first_line = initial_tag + '\n'
         model_f.write(first_line)
 
-        for transformation in valid_transformations:
+        for transformation, gain in valid_transformations:
             output_line = transformation[0] + ' ' + transformation[1] + ' ' + transformation[2] + ' ' \
-                          + str(net_gain[transformation]) + '\n'
+                          + str(gain) + '\n'
             model_f.write(output_line)
 
 
-__name__ = "__main__"
 if __name__ == "__main__":
-    use_local_file = True
+    use_local_file = False
     if use_local_file:
         if 'hw7' in os.listdir():
             os.chdir('hw7')
@@ -143,8 +168,6 @@ if __name__ == "__main__":
 
     training_data, feature_set, label_set, default_label = read_training_data(training_data_filename)
 
-    # Transformation: if feature: label1 -> label2
-    # print('generating')
-    valid_trans, net_gain_dict = generate_transformations(training_data, min_gain, label_set, default_label)
-    write_model(model_filename, default_label, valid_trans, net_gain_dict)
-    print(len(valid_trans))
+    valid_trans = generate_transformations(training_data, min_gain, label_set, default_label)
+
+    write_model(model_filename, default_label, valid_trans)
