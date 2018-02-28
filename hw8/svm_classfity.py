@@ -1,6 +1,7 @@
 import sys
 import os
 
+
 class SVM:
     def __init__(self):
         self.sv = []
@@ -44,6 +45,15 @@ class SVM:
 
     def set_nr_sv(self, nr_sv):
         self.nr_sv = nr_sv
+
+    def predict(self, data):
+        """
+        Run svm classification on data
+        :param data:
+        :return: predicted labels
+        """
+        result = []
+        return result
 
 
 def read_svm(model_file):
@@ -100,8 +110,8 @@ if __name__ == "__main__":
         model_filename = sys.argv[2]
         sys_output = sys.argv[3]
 
-
     svm_model = read_svm(model_filename)
+
 
 
 
