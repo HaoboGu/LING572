@@ -1,5 +1,7 @@
 # LING572
 
+This repository is used for LING572: Statistical techniques for NLP.
+
 ## HW2
 
 Implemented a decision tree based on entropy & info gain. 
