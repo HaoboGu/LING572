@@ -41,7 +41,10 @@ class Network(object):
     def feedforward(self, a):
         """Return the output of the network if ``a`` is input."""
         for b, w in zip(self.biases, self.weights):
-            a = sigmoid(np.dot(w, a)+b)
+            if self.activation == 1:
+                a = tanh(np.dot(w, a)+b)
+            else:
+                a = sigmoid(np.dot(w, a)+b)
         return a
 
     def SGD(self, training_data, epochs, mini_batch_size, eta,
@@ -155,10 +158,8 @@ def sigmoid_prime(z):
 
 def tanh(z):
     """The tanh function."""
-    ## TODO: Add your code here.
-    return z 
+    return (np.exp(z)-np.exp(-z))/(np.exp(z)+np.exp(-z)) 
 
 def tanh_prime(z):
     """Derivative of the sigmoid function."""
-    ## TODO: Add your code here.
-    return z
+    return (1 - tanh(z) * tanh(z))
